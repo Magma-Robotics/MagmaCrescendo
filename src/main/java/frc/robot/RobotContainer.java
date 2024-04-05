@@ -102,9 +102,9 @@ public class RobotContainer {
     driverPartnerController
       .povUp().onTrue(autoShoot());
     driverPartnerController
-      .povLeft().onTrue(new SetIndexer(Indexer, -Constants.Subsystems.Indexer.kPOWER)).onFalse(new IndexerStop(Indexer));
+      .povLeft().onTrue(new ManualArm(Rotator, -0.2)).onFalse(new StopArm(Rotator));
     driverPartnerController
-      .povRight().onTrue(new SetIndexer(Indexer, Constants.Subsystems.Indexer.kPOWER)).onFalse(new IndexerStop(Indexer));
+      .povRight().onTrue(new ManualArm(Rotator, 0.2)).onFalse(new StopArm(Rotator));
 
     testController
       .a().onTrue(new ManualArm(Rotator, 0.2)).onFalse(new StopArm(Rotator));
