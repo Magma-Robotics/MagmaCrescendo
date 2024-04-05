@@ -36,8 +36,8 @@ public class Shooter extends SubsystemBase {
         rightShooter.restoreFactoryDefaults();
 
         //rightShooter.follow(leftShooter, true);
-        leftShooter.setInverted(false);
-        rightShooter.setInverted(true);
+        leftShooter.setInverted(true);
+        rightShooter.setInverted(false);
 
         leftShooter.burnFlash();
         rightShooter.burnFlash();

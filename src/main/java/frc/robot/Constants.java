@@ -22,6 +22,7 @@ public final class Constants {
     }
     public static class Shooter{
         public static final double kPOWER = 0.9;
+        public static final double pwrAmp = 0.3;
         public static final double kPOWERWEAKER = 0.5;
 
         public static double kLeftS = 0.23643;

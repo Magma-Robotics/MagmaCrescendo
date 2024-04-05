@@ -68,20 +68,16 @@ public class Rotator extends TrapezoidProfileSubsystem {
     return Commands.runOnce(() -> setGoal(ksetPoint),this);
   }
 
-  public Command ManualArm(double power) {
-    return run(
-      () -> {
-        m_leftmotor.set(power);
-      }
-    );
+  public double getLeftEncoderPos() {
+    return m_leftencoder.getPosition();
   }
 
-  public Command StopArm() {
-    return runOnce(
-      () -> {
-        m_leftmotor.stopMotor();
-      }
-    );
+  public void ManualArm(double power) {
+    m_leftmotor.set(power);
+  }
+
+  public void StopArm() {
+    m_leftmotor.stopMotor();
   }
 
   public Command ResetArmEncoder() {

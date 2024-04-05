@@ -5,12 +5,15 @@
 package frc.robot;
 
 import frc.robot.commands.autos.DriveEncoders;
+import frc.robot.commands.autos.Rotate;
 import frc.robot.commands.drive.DriveTrainCommand;
 import frc.robot.commands.drive.DriveTrainCommandSlower;
 import frc.robot.commands.indexer.IndexerStop;
 import frc.robot.commands.indexer.SetIndexer;
 import frc.robot.commands.intake.IntakeStop;
 import frc.robot.commands.intake.SetIntake;
+import frc.robot.commands.rotator.ManualArm;
+import frc.robot.commands.rotator.StopArm;
 import frc.robot.commands.shooter.SetShooter;
 import frc.robot.commands.shooter.ShooterStop;
 import frc.robot.commands.shooter.TargetFeedforward;
@@ -55,6 +58,9 @@ public class RobotContainer {
   public RobotContainer() {
     SmartDashboard.putData("Auto Chooser", m_auto_chooser);
     m_auto_chooser.addOption("Mid Auto", MidAuto());
+    m_auto_chooser.addOption("Left Side Auto", LeftSideAuto());
+    m_auto_chooser.addOption("Right Side Auto", RightSideAuto());
+    m_auto_chooser.addOption("Shoot Auto", ShootAuto());
 
     driveTrain.setDefaultCommand(new DriveTrainCommand(driveTrain, driverController));
 
@@ -82,24 +88,47 @@ public class RobotContainer {
     driverPartnerController
       .x().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kAmp));
     driverPartnerController
-      .y().onTrue(autoShoot());
+      .y().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kSpeaker));
     driverPartnerController
       .rightBumper().onTrue(new SetShooter(Shooter, -Constants.Subsystems.Shooter.kPOWER)).onFalse(new ShooterStop(Shooter));
     driverPartnerController
       .rightBumper().onTrue(new SetIntake(Intake, Constants.Subsystems.Intake.kPOWER)).onFalse(new IntakeStop(Intake));
     driverPartnerController
+      .rightBumper().onTrue(new SetIndexer(Indexer, -Constants.Subsystems.Shooter.kPOWER)).onFalse(new IndexerStop(Indexer));
+    driverPartnerController
       .leftBumper().onTrue(new SetIntake(Intake, -Constants.Subsystems.Intake.kPOWER)).onFalse(new IntakeStop(Intake));
     driverPartnerController
-      .a().and(driverPartnerController.povUp()).onTrue(new ShooterStop(Shooter));
+      .leftBumper().onTrue(new SetShooter(Shooter, Constants.Subsystems.Intake.kPOWER)).onFalse(new ShooterStop(Shooter));  
     driverPartnerController
-      .a().and(driverPartnerController.povUp()).onTrue(new IndexerStop(Indexer));    
+      .povUp().onTrue(autoShoot());
+    driverPartnerController
+      .povLeft().onTrue(new SetIndexer(Indexer, -Constants.Subsystems.Indexer.kPOWER)).onFalse(new IndexerStop(Indexer));
+    driverPartnerController
+      .povRight().onTrue(new SetIndexer(Indexer, Constants.Subsystems.Indexer.kPOWER)).onFalse(new IndexerStop(Indexer));
 
     testController
-      .a().onTrue(Rotator.ManualArm(0.2)).onFalse(Rotator.StopArm());
+      .a().onTrue(new ManualArm(Rotator, 0.2)).onFalse(new StopArm(Rotator));
     testController
-      .b().onTrue(Rotator.ManualArm(-0.2)).onFalse(Rotator.StopArm());
+      .b().onTrue(new ManualArm(Rotator, -0.2)).onFalse(new StopArm(Rotator));
     testController
       .y().onTrue(Rotator.ResetArmEncoder());
+    testController
+      .povRight().onTrue(new SetIndexer(Indexer, 1)).onFalse(new IndexerStop(Indexer));
+    testController
+      .povLeft().onTrue(new SetIndexer(Indexer, -1)).onFalse(new IndexerStop(Indexer));
+    testController
+      .povUp().onTrue(new SetShooter(Shooter, 1)).onFalse(new ShooterStop(Shooter));
+    testController 
+      .povDown().onTrue(new SetShooter(Shooter, -1)).onFalse(new ShooterStop(Shooter));
+    testController
+      .rightBumper().onTrue(new SetShooter(Shooter, -Constants.Subsystems.Shooter.kPOWER)).onFalse(new ShooterStop(Shooter));
+    testController
+      .rightBumper().onTrue(new SetIntake(Intake, Constants.Subsystems.Intake.kPOWER)).onFalse(new IntakeStop(Intake));
+    testController
+      .leftBumper().onTrue(new SetIntake(Intake, -Constants.Subsystems.Intake.kPOWER)).onFalse(new IntakeStop(Intake));
+    testController
+      .leftBumper().onTrue(new SetShooter(Shooter, Constants.Subsystems.Intake.kPOWER)).onFalse(new ShooterStop(Shooter));  
+    
   }
 
   /**
@@ -118,7 +147,7 @@ public class RobotContainer {
         new WaitCommand(0.5)),
       new IndexerStop(Indexer),
       new ParallelRaceGroup(
-        new TargetFeedforward(Shooter, 4.2),
+        new SetShooter(Shooter, Constants.Subsystems.Shooter.pwrAmp),
         new WaitCommand(1)
       ),
       new ShooterStop(Shooter)
@@ -126,10 +155,9 @@ public class RobotContainer {
   }
   public Command autoShoot() {
     return new SequentialCommandGroup(
-      Rotator.setArmGoalCommand(Constants.ArmConstants.kSpeaker),
       new ParallelRaceGroup(
-        new TargetFeedforward(Shooter, 4.2),
-        new WaitCommand(1)
+        new SetShooter(Shooter, Constants.Subsystems.Shooter.kPOWER),
+        new WaitCommand(1.5)
       ),
       new ParallelRaceGroup(
         new SetIndexer(Indexer, Constants.Subsystems.Indexer.kPOWER),
@@ -141,9 +169,12 @@ public class RobotContainer {
   
   public Command autoBackwardsShoot() {
     return new SequentialCommandGroup(
-      Rotator.setArmGoalCommand(Constants.ArmConstants.kBackwardsSpeaker),
+      new ParallelRaceGroup (
+        Rotator.setArmGoalCommand(Constants.ArmConstants.kBackwardsSpeaker),
+        new WaitCommand(3)
+      ),
       new ParallelRaceGroup(
-        new TargetFeedforward(Shooter, 4.2),
+        new TargetFeedforward(Shooter, 20),
         new WaitCommand(1)
       ),
       new ParallelRaceGroup(
@@ -175,8 +206,38 @@ public class RobotContainer {
       autoBackwardsShoot(),
       new ParallelCommandGroup(
         Rotator.setArmGoalCommand(Constants.ArmConstants.kHome),
-        new DriveEncoders(driveTrain, 0.6, 5, false)
+        new DriveEncoders(driveTrain, 0.6, 4, false)
       )
+    );
+  }
+
+  public Command LeftSideAuto() {
+    return new SequentialCommandGroup(
+      Rotator.setArmGoalCommand(Constants.ArmConstants.kSpeaker),
+      autoShoot(),
+      Rotator.setArmGoalCommand(Constants.ArmConstants.kHome),
+      new DriveEncoders(driveTrain, -0.5, 1, true),
+      new Rotate(driveTrain, -0.5, 45),
+      new DriveEncoders(driveTrain, -0.5, 4, true)
+    );
+  }
+
+  public Command RightSideAuto() {
+    return new SequentialCommandGroup(
+      Rotator.setArmGoalCommand(Constants.ArmConstants.kSpeaker),
+      autoShoot(),
+      Rotator.setArmGoalCommand(Constants.ArmConstants.kHome),
+      new DriveEncoders(driveTrain, -0.5, 1, true),
+      new Rotate(driveTrain, 0.5, 45),
+      new DriveEncoders(driveTrain, -0.5, 4, true)
+    );
+  }
+
+  public Command ShootAuto() {
+    return new SequentialCommandGroup(
+      Rotator.setArmGoalCommand(Constants.ArmConstants.kSpeaker),
+      autoShoot(),
+      Rotator.setArmGoalCommand(Constants.ArmConstants.kHome)
     );
   }
 }

@@ -28,6 +28,9 @@ public class DriveTrain extends SubsystemBase {
         rLDrive.follow(fLDrive);
         rRDrive.follow(fRDrive);
 
+        this.fLDrive.setInverted(false);
+        this.fRDrive.setInverted(true);
+
         fLDriveEncoder = fLDrive.getEncoder();
         fRDriveEncoder = fRDrive.getEncoder();
 
