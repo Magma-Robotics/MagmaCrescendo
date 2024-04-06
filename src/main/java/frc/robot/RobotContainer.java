@@ -4,6 +4,8 @@
 
 package frc.robot;
 
+import frc.robot.commands.autos.AutoTimedIntake;
+import frc.robot.commands.autos.AutoTimedShooter;
 import frc.robot.commands.autos.DriveEncoders;
 import frc.robot.commands.autos.Rotate;
 import frc.robot.commands.drive.DriveTrainCommand;
@@ -53,10 +55,13 @@ public class RobotContainer {
   private final CommandXboxController testController = 
     new CommandXboxController(2);
   SendableChooser<Command> m_auto_chooser = new SendableChooser<>();
+  private final CommandXboxController ampTesterController = 
+     new CommandXboxController(3);
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     SmartDashboard.putData("Auto Chooser", m_auto_chooser);
+    m_auto_chooser.setDefaultOption("Shoot Auto", ShootAuto());
     m_auto_chooser.addOption("Mid Auto", MidAuto());
     m_auto_chooser.addOption("Left Side Auto", LeftSideAuto());
     m_auto_chooser.addOption("Right Side Auto", RightSideAuto());
@@ -80,15 +85,21 @@ public class RobotContainer {
   private void configureBindings() {
     driverController
       .rightBumper().whileTrue(new DriveTrainCommandSlower(driveTrain, driverController));
+    driverController
+      .y().onTrue(Rotator.ResetArmEncoder());
+    driverController
+      .povUp().onTrue(new ManualArm(Rotator, 0.2)).onFalse(new StopArm(Rotator));
+    driverController
+      .povDown().onTrue(new ManualArm(Rotator, -0.2)).onFalse(new StopArm(Rotator));
 
     driverPartnerController
       .a().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kHome));
     driverPartnerController
-      .b().onTrue(autoAmp());
+      .b().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kSpeaker));
     driverPartnerController
-      .x().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kAmp));
+      .x().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kBackwardsSpeaker));
     driverPartnerController
-      .y().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kSpeaker));
+      .y().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kAmp));
     driverPartnerController
       .rightBumper().onTrue(new SetShooter(Shooter, -Constants.Subsystems.Shooter.kPOWER)).onFalse(new ShooterStop(Shooter));
     driverPartnerController
@@ -102,9 +113,7 @@ public class RobotContainer {
     driverPartnerController
       .povUp().onTrue(autoShoot());
     driverPartnerController
-      .povLeft().onTrue(new ManualArm(Rotator, -0.2)).onFalse(new StopArm(Rotator));
-    driverPartnerController
-      .povRight().onTrue(new ManualArm(Rotator, 0.2)).onFalse(new StopArm(Rotator));
+      .povLeft().onTrue(autoAmp());
 
     testController
       .a().onTrue(new ManualArm(Rotator, 0.2)).onFalse(new StopArm(Rotator));
@@ -128,6 +137,20 @@ public class RobotContainer {
       .leftBumper().onTrue(new SetIntake(Intake, -Constants.Subsystems.Intake.kPOWER)).onFalse(new IntakeStop(Intake));
     testController
       .leftBumper().onTrue(new SetShooter(Shooter, Constants.Subsystems.Intake.kPOWER)).onFalse(new ShooterStop(Shooter));  
+
+    ampTesterController
+      .a().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kHome));
+    ampTesterController
+      .x().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kAmp));
+    ampTesterController
+      .b().onTrue(autoAmpTest());
+    ampTesterController
+      .povUp().onTrue(Shooter.adjustAmpSpeed(0.05));
+    ampTesterController
+      .povDown().onTrue(Shooter.adjustAmpSpeed(-0.05));
+
+    ampTesterController
+      .rightBumper().onTrue(new SetIntake(Intake, 1));
     
   }
 
@@ -140,11 +163,25 @@ public class RobotContainer {
     return m_auto_chooser.getSelected();
   }
 
-  public Command autoAmp() {
+  public Command autoAmpTest() {
     return new SequentialCommandGroup(
       new ParallelRaceGroup(
         new SetIndexer(Indexer, Constants.Subsystems.Indexer.kPOWER),
         new WaitCommand(0.5)),
+      new IndexerStop(Indexer),
+      new ParallelRaceGroup(
+        new SetShooter(Shooter, Shooter.getAmpPower()),
+        new WaitCommand(1)
+      ),
+      new ShooterStop(Shooter)
+    );
+  }
+
+  public Command autoAmp() {
+    return new SequentialCommandGroup(
+      new ParallelRaceGroup(
+        new SetIndexer(Indexer, 0.5),
+        new WaitCommand(0.2)),
       new IndexerStop(Indexer),
       new ParallelRaceGroup(
         new SetShooter(Shooter, Constants.Subsystems.Shooter.pwrAmp),
@@ -156,12 +193,12 @@ public class RobotContainer {
   public Command autoShoot() {
     return new SequentialCommandGroup(
       new ParallelRaceGroup(
-        new SetShooter(Shooter, Constants.Subsystems.Shooter.kPOWER),
+        new TargetFeedforward(Shooter, 50),
         new WaitCommand(1.5)
       ),
       new ParallelRaceGroup(
         new SetIndexer(Indexer, Constants.Subsystems.Indexer.kPOWER),
-        new WaitCommand(0.5)),
+        new WaitCommand(1)),
       new ShooterStop(Shooter),
       new IndexerStop(Indexer)
     );
@@ -169,20 +206,18 @@ public class RobotContainer {
   
   public Command autoBackwardsShoot() {
     return new SequentialCommandGroup(
-      new ParallelRaceGroup (
-        Rotator.setArmGoalCommand(Constants.ArmConstants.kBackwardsSpeaker),
-        new WaitCommand(3)
-      ),
-      new ParallelRaceGroup(
-        new TargetFeedforward(Shooter, 20),
-        new WaitCommand(1)
+      Rotator.setArmGoalCommand(Constants.ArmConstants.kBackwardsSpeaker),       
+      new WaitCommand(2),
+      new ParallelRaceGroup( 
+        new TargetFeedforward(Shooter, 30),
+        new WaitCommand(1.5)
       ),
       new ParallelRaceGroup(
         new SetIndexer(Indexer, Constants.Subsystems.Indexer.kPOWER),
         new WaitCommand(0.5)),
       new ShooterStop(Shooter),
       new IndexerStop(Indexer)
-    );
+      );
   }
 
   public Command MidAuto() {
@@ -190,13 +225,15 @@ public class RobotContainer {
       //Rotate arm and shoot
       autoBackwardsShoot(),
       Rotator.setArmGoalCommand(Constants.ArmConstants.kHome),
-      //Drive forward
-      new DriveEncoders(driveTrain, 0.5, 4, false),
-      //Intake
-      new ParallelRaceGroup(
-        new SetIntake(Intake, Constants.Subsystems.Intake.kPOWER),
-        new SetShooter(Shooter, -Constants.Subsystems.Shooter.kPOWER),
-        new WaitCommand(2.5)
+      new WaitCommand(0.5),
+      new ParallelCommandGroup(
+        //Drive forward
+        new DriveEncoders(driveTrain, 0.5, 4, false),
+        //Intake
+        new ParallelCommandGroup(
+          new AutoTimedShooter(Shooter, 3500, -Constants.Subsystems.Shooter.kPOWER),
+          new AutoTimedIntake(Intake, 3500, Constants.Subsystems.Intake.kPOWER)
+        )
       ),
       new ShooterStop(Shooter),
       new IndexerStop(Indexer),
@@ -216,6 +253,7 @@ public class RobotContainer {
       Rotator.setArmGoalCommand(Constants.ArmConstants.kSpeaker),
       autoShoot(),
       Rotator.setArmGoalCommand(Constants.ArmConstants.kHome),
+      new WaitCommand(8),
       new DriveEncoders(driveTrain, -0.5, 1, true),
       new Rotate(driveTrain, -0.5, 45),
       new DriveEncoders(driveTrain, -0.5, 4, true)
@@ -226,6 +264,7 @@ public class RobotContainer {
     return new SequentialCommandGroup(
       Rotator.setArmGoalCommand(Constants.ArmConstants.kSpeaker),
       autoShoot(),
+      new WaitCommand(5),
       Rotator.setArmGoalCommand(Constants.ArmConstants.kHome),
       new DriveEncoders(driveTrain, -0.5, 1, true),
       new Rotate(driveTrain, 0.5, 45),

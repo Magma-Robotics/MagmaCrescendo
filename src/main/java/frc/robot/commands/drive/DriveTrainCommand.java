@@ -17,8 +17,8 @@ public class DriveTrainCommand extends Command {
     @Override
     public void execute() {
         driveTrain.diffDriveJoystick(
-            this.driveController.getLeftY()*.8, 
-            this.driveController.getRightY()*.8);
+            this.driveController.getLeftY()*1, 
+            this.driveController.getRightY()*1);
     }
 
     @Override

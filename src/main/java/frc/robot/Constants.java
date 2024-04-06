@@ -22,7 +22,7 @@ public final class Constants {
     }
     public static class Shooter{
         public static final double kPOWER = 0.9;
-        public static final double pwrAmp = 0.3;
+        public static final double pwrAmp = 0.17;
         public static final double kPOWERWEAKER = 0.5;
 
         public static double kLeftS = 0.23643;
@@ -70,6 +70,6 @@ public final class Constants {
     public static double kSpeaker = .78;
     public static double kAmp = 1.3;
     public static double kHome = 0;
-    public static double kBackwardsSpeaker = 1.2;
+    public static double kBackwardsSpeaker = 1.35;
   }
 }
