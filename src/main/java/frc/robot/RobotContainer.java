@@ -66,6 +66,7 @@ public class RobotContainer {
     m_auto_chooser.addOption("Left Side Auto", LeftSideAuto());
     m_auto_chooser.addOption("Right Side Auto", RightSideAuto());
     m_auto_chooser.addOption("Shoot Auto", ShootAuto());
+    m_auto_chooser.addOption("Nothing Auto", NothingAuto());
 
     driveTrain.setDefaultCommand(new DriveTrainCommand(driveTrain, driverController));
 
@@ -95,11 +96,11 @@ public class RobotContainer {
     driverPartnerController
       .a().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kHome));
     driverPartnerController
-      .b().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kSpeaker));
+      .b().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kPass));
     driverPartnerController
-      .x().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kBackwardsSpeaker));
+      .x().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kAmp));
     driverPartnerController
-      .y().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kAmp));
+      .y().onTrue(Rotator.setArmGoalCommand(Constants.ArmConstants.kSpeaker));
     driverPartnerController
       .rightBumper().onTrue(new SetShooter(Shooter, -Constants.Subsystems.Shooter.kPOWER)).onFalse(new ShooterStop(Shooter));
     driverPartnerController
@@ -114,6 +115,8 @@ public class RobotContainer {
       .povUp().onTrue(autoShoot());
     driverPartnerController
       .povLeft().onTrue(autoAmp());
+    driverPartnerController
+      .povRight().onTrue(new SetIndexer(Indexer, Constants.Subsystems.Indexer.kPOWER)).onFalse(new IndexerStop(Indexer));
 
     testController
       .a().onTrue(new ManualArm(Rotator, 0.2)).onFalse(new StopArm(Rotator));
@@ -193,7 +196,7 @@ public class RobotContainer {
   public Command autoShoot() {
     return new SequentialCommandGroup(
       new ParallelRaceGroup(
-        new TargetFeedforward(Shooter, 50),
+        new SetShooter(Shooter, 1),
         new WaitCommand(1.5)
       ),
       new ParallelRaceGroup(
@@ -278,5 +281,9 @@ public class RobotContainer {
       autoShoot(),
       Rotator.setArmGoalCommand(Constants.ArmConstants.kHome)
     );
+  }
+
+  public Command NothingAuto() {
+    return new WaitCommand(15);
   }
 }

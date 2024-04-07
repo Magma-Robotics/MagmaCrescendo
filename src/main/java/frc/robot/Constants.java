@@ -67,9 +67,10 @@ public final class Constants {
     
     // The offset of the arm from the horizontal in its neutral position,
     // measured from the horizontal
-    public static double kSpeaker = .78;
+    public static double kSpeaker = .85;
     public static double kAmp = 1.3;
     public static double kHome = 0;
     public static double kBackwardsSpeaker = 1.35;
+    public static double kPass = 0.42;
   }
 }
